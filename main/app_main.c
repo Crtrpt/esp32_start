@@ -102,7 +102,7 @@ static void event_handler(void* arg, esp_event_base_t event_base,
         memcpy(ssid, evt->ssid, sizeof(evt->ssid));
         memcpy(password, evt->password, sizeof(evt->password));
         ESP_LOGI(TAG, "SSID:%s", ssid);
-        ESP_LOGI(TAG, "PASSWORD:%s", password);
+        //ESP_LOGI(TAG, "PASSWORD:%s", password);
         if (evt->type == SC_TYPE_ESPTOUCH_V2) {
             ESP_ERROR_CHECK( esp_smartconfig_get_rvd_data(rvd_data, sizeof(rvd_data)) );
             ESP_LOGI(TAG, "RVD_DATA:");
@@ -153,8 +153,8 @@ static void smartconfig_example_task(void * parm)
     while (1) {
         uxBits = xEventGroupWaitBits(s_wifi_event_group, CONNECTED_BIT | ESPTOUCH_DONE_BIT, true, false, portMAX_DELAY);
         if(uxBits & CONNECTED_BIT) {
+        	ESP_LOGI(TAG, "wifi链接成功");
         	mqtt_app_start();
-            ESP_LOGI(TAG, "WiFi Connected to ap");
         }
         if(uxBits & ESPTOUCH_DONE_BIT) {
             ESP_LOGI(TAG, "配网完成");
@@ -173,6 +173,7 @@ static void log_error_if_nonzero(const char * message, int error_code)
 }
 
 
+char buffer[20];
 
 esp_mqtt_client_handle_t client;
 
@@ -184,6 +185,8 @@ static esp_err_t mqtt_event_handler_cb(esp_mqtt_event_handle_t event)
     switch (event->event_id) {
         case MQTT_EVENT_CONNECTED:
             ESP_LOGI(TAG, "链接成功");
+
+            msg_id = esp_mqtt_client_publish(client, "/topic/esp32/up", "019191919191"  , 0, 0, 0);
             msg_id = esp_mqtt_client_subscribe(client, "/topic/esp32", 0);
             ESP_LOGI(TAG, "订阅成功, msg_id=%d", msg_id);
             //设置延迟队列
@@ -207,12 +210,11 @@ static esp_err_t mqtt_event_handler_cb(esp_mqtt_event_handle_t event)
             ESP_LOGI(TAG, "收到订阅内容");
             printf("主题=%.*s\r\n", event->topic_len, event->topic);
             printf("负载内容=%.*s\r\n", event->data_len, event->data);
-            char buffer[20];
+
             int num=atoi(event->data);
             sprintf(buffer, "%d",++num);
-            printf("%s",buffer);
+            printf("发布内容%s \r\n",buffer);
             msg_id = esp_mqtt_client_publish(client, "/topic/esp32/up", buffer  , 0, 0, 0);
-            printf("发布内容%s", buffer);
             break;
         case MQTT_EVENT_ERROR:
             ESP_LOGI(TAG, "mqtt错误事件");
